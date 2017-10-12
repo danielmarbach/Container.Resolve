@@ -1,5 +1,6 @@
 ﻿using System;
 using Autofac;
+using Autofac.Core;
 using Ninject;
 using Ninject.Modules;
 using Ninject.Parameters;
@@ -10,22 +11,24 @@ namespace Container.Resolve
     {
         static void Main(string[] args)
         {
-            Ninject();
+            NinjectSample();
 
-            Autofac();
+            AutofacSample();
         }
 
-        private static void Autofac()
+        private static void AutofacSample()
         {
             var builder = new ContainerBuilder();
-            builder.RegisterType<TreeWithNode>().AsSelf();
-            builder.RegisterType<TreeWithNodeWithoutDependency>().AsSelf();
-            builder.RegisterType<Node>().AsSelf();
-            builder.RegisterType<NodeWithoutDependency>().AsSelf();
+            builder.RegisterType<TreeWithNode>();
+            builder.RegisterType<TreeWithNodeWithoutDependency>();
+            builder.RegisterType<Node>();
+            builder.RegisterType<NodeWithoutDependency>();
 
             var container = builder.Build();
 
+            
             var dependency = new Dependency(1);
+            var parameter = new ResolvedParameter((p, c)=> typeof(Dependency).IsAssignableFrom(p.ParameterType), (p, c) => dependency);
             var treeWithNode = container.Resolve<TreeWithNode>(TypedParameter.From(dependency));
             var treeWithNodeWithoutDependency = container.Resolve<TreeWithNodeWithoutDependency>(TypedParameter.From(dependency));
 
@@ -35,7 +38,7 @@ namespace Container.Resolve
             Console.ReadLine();
         }
 
-        private static void Ninject()
+        private static void NinjectSample()
         {
             var kernel = new StandardKernel();
             kernel.Load(new Module());
