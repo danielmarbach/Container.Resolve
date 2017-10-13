@@ -1,9 +1,14 @@
 ﻿using System;
 using Autofac;
 using Autofac.Core;
+using Castle.MicroKernel;
+using Castle.MicroKernel.Registration;
+using Castle.MicroKernel.SubSystems.Configuration;
+using Castle.Windsor;
 using Ninject;
 using Ninject.Modules;
 using Ninject.Parameters;
+using StructureMap.Pipeline;
 
 namespace Container.Resolve
 {
@@ -13,7 +18,51 @@ namespace Container.Resolve
         {
             NinjectSample();
 
-            AutofacSample();
+            // not supported https://github.com/autofac/Autofac/issues/478#issuecomment-33536784
+            // AutofacSample();
+
+            StructureMapSample();
+
+            // not supported https://github.com/castleproject/Windsor/blob/master/docs/passing-arguments.md#composition-root---containerresolve
+            // WindsorSample();
+        }
+
+        private static void WindsorSample()
+        {
+            var container = new WindsorContainer();
+            container.Register(Component.For<TreeWithNode>().LifestyleTransient());
+            container.Register(Component.For<TreeWithNodeWithoutDependency>().LifestyleTransient());
+            container.Register(Component.For<Node>().LifestyleTransient());
+            container.Register(Component.For<NodeWithoutDependency>().LifestyleTransient());
+
+            var dependency = new Dependency(1);
+            var treeWithNode = container.Resolve<TreeWithNode>(new Arguments(new { dependency }));
+            var treeWithNodeWithoutDependency = container.Resolve<TreeWithNodeWithoutDependency>(new Arguments(new { dependency }));
+
+            Console.WriteLine(treeWithNode.ToString());
+            Console.WriteLine(treeWithNodeWithoutDependency.ToString());
+        }
+
+        private static void StructureMapSample()
+        {
+            var container = new StructureMap.Container(_ =>
+            {
+                _.For<TreeWithNode>().Transient();
+                _.For<TreeWithNodeWithoutDependency>().Transient();
+                _.For<Node>().Transient();
+                _.For<NodeWithoutDependency>().Transient();
+            });
+
+            var dependency = new Dependency(1);
+            var args = new ExplicitArguments();
+            args.Set<Dependency>(dependency);
+            var treeWithNode = container.GetInstance<TreeWithNode>(args);
+            var treeWithNodeWithoutDependency = container.GetInstance<TreeWithNodeWithoutDependency>(args);
+
+            Console.WriteLine(treeWithNode.ToString());
+            Console.WriteLine(treeWithNodeWithoutDependency.ToString());
+
+            Console.ReadLine();
         }
 
         private static void AutofacSample()
@@ -25,10 +74,8 @@ namespace Container.Resolve
             builder.RegisterType<NodeWithoutDependency>();
 
             var container = builder.Build();
-
             
             var dependency = new Dependency(1);
-            var parameter = new ResolvedParameter((p, c)=> typeof(Dependency).IsAssignableFrom(p.ParameterType), (p, c) => dependency);
             var treeWithNode = container.Resolve<TreeWithNode>(TypedParameter.From(dependency));
             var treeWithNodeWithoutDependency = container.Resolve<TreeWithNodeWithoutDependency>(TypedParameter.From(dependency));
 
